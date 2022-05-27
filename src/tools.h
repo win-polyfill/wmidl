@@ -375,6 +375,19 @@ static inline void *read_file( const char *name, size_t *size )
 static inline struct target get_default_target(void)
 {
     struct target target;
+#if defined(_MSC_VER)
+#ifdef _M_IX86
+    target.cpu = CPU_i386;
+#elif defined(_M_X64) || defined(_M_AMD64)
+    target.cpu = CPU_x86_64;
+#elif defined(_M_ARM) || defined(_M_ARMT)
+    target.cpu = CPU_ARM;
+#elif defined(_M_ARM64)
+    target.cpu = CPU_ARM64;
+#else
+#error Unsupported CPU
+#endif
+#else
 #ifdef __i386__
     target.cpu = CPU_i386;
 #elif defined(__x86_64__)
@@ -385,6 +398,7 @@ static inline struct target get_default_target(void)
     target.cpu = CPU_ARM64;
 #else
 #error Unsupported CPU
+#endif
 #endif
 
 #ifdef __APPLE__

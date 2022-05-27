@@ -225,19 +225,7 @@ enum expr_type
     EXPR_CHARCONST,
 };
 
-enum type_kind
-{
-    TKIND_PRIMITIVE = -1,
-    TKIND_ENUM,
-    TKIND_RECORD,
-    TKIND_MODULE,
-    TKIND_INTERFACE,
-    TKIND_DISPATCH,
-    TKIND_COCLASS,
-    TKIND_ALIAS,
-    TKIND_UNION,
-    TKIND_MAX
-};
+typedef TYPEKIND type_kind;
 
 enum storage_class
 {
@@ -624,12 +612,7 @@ struct _warning_t {
     struct list entry;
 };
 
-typedef enum {
-    SYS_WIN16,
-    SYS_WIN32,
-    SYS_MAC,
-    SYS_WIN64
-} syskind_t;
+typedef SYSKIND syskind_t;
 
 extern user_type_list_t user_type_list;
 extern context_handle_list_t context_handle_list;

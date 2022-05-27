@@ -93,7 +93,7 @@
 /*
  * Prototypes
  */
-static int boolean(cval_t *v);
+static int to_boolean(cval_t *v);
 static void promote_equal_size(cval_t *v1, cval_t *v2);
 static void cast_to_sint(cval_t *v);
 static void cast_to_uint(cval_t *v);
@@ -180,7 +180,7 @@ pp_file	: /* Empty */
 preprocessor
 	: tINCLUDE tDQSTRING tNL	{ pp_do_include($2, 1); }
 	| tINCLUDE tIQSTRING tNL	{ pp_do_include($2, 0); }
-	| tIF pp_expr tNL	{ pp_next_if_state(boolean(&$2)); }
+	| tIF pp_expr tNL	{ pp_next_if_state(to_boolean(&$2)); }
 	| tIFDEF tIDENT tNL	{ pp_next_if_state(pplookup($2) != NULL); free($2); }
 	| tIFNDEF tIDENT tNL	{
 		int t = pplookup($2) == NULL;
@@ -211,7 +211,7 @@ preprocessor
 			pp_push_if(if_elif);
 			break;
 		case if_false:
-			pp_push_if(boolean(&$2) ? if_true : if_false);
+			pp_push_if(to_boolean(&$2) ? if_true : if_false);
 			break;
 		case if_ignore:
 			pp_push_if(if_ignore);
@@ -363,8 +363,8 @@ pp_expr	: tSINT				{ $$.type = cv_sint;  $$.val.si = $1; }
 	| tDEFINED tIDENT		{ $$.type = cv_sint;  $$.val.si = pplookup($2) != NULL; }
 	| tDEFINED '(' tIDENT ')'	{ $$.type = cv_sint;  $$.val.si = pplookup($3) != NULL; }
 	| tIDENT			{ $$.type = cv_sint;  $$.val.si = 0; }
-	| pp_expr tLOGOR pp_expr	{ $$.type = cv_sint; $$.val.si = boolean(&$1) || boolean(&$3); }
-	| pp_expr tLOGAND pp_expr	{ $$.type = cv_sint; $$.val.si = boolean(&$1) && boolean(&$3); }
+	| pp_expr tLOGOR pp_expr	{ $$.type = cv_sint; $$.val.si = to_boolean(&$1) || to_boolean(&$3); }
+	| pp_expr tLOGAND pp_expr	{ $$.type = cv_sint; $$.val.si = to_boolean(&$1) && to_boolean(&$3); }
 	| pp_expr tEQ pp_expr		{ promote_equal_size(&$1, &$3); BIN_OP($$, $1, $3, ==); }
 	| pp_expr tNE pp_expr		{ promote_equal_size(&$1, &$3); BIN_OP($$, $1, $3, !=); }
 	| pp_expr '<' pp_expr		{ promote_equal_size(&$1, &$3); BIN_OP($$, $1, $3,  <); }
@@ -383,9 +383,9 @@ pp_expr	: tSINT				{ $$.type = cv_sint;  $$.val.si = $1; }
 	| '+' pp_expr			{ $$ =  $2; }
 	| '-' pp_expr			{ UNARY_OP($$, $2, -); }
 	| '~' pp_expr			{ UNARY_OP($$, $2, ~); }
-	| '!' pp_expr			{ $$.type = cv_sint; $$.val.si = !boolean(&$2); }
+	| '!' pp_expr			{ $$.type = cv_sint; $$.val.si = !to_boolean(&$2); }
 	| '(' pp_expr ')'		{ $$ =  $2; }
-	| pp_expr '?' pp_expr ':' pp_expr { $$ = boolean(&$1) ? $3 : $5; }
+	| pp_expr '?' pp_expr ':' pp_expr { $$ = to_boolean(&$1) ? $3 : $5; }
 	;
 
 %%
@@ -517,7 +517,7 @@ static void promote_equal_size(cval_t *v1, cval_t *v2)
 }
 
 
-static int boolean(cval_t *v)
+static int to_boolean(cval_t *v)
 {
 	switch(v->type)
 	{

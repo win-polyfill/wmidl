@@ -21,8 +21,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "windef.h"
-#include "winbase.h"
+#include <windows.h>
+
 #include "winnls.h"
 
 #include "widltypes.h"

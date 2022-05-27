@@ -747,7 +747,7 @@ static importinfo_t *find_importinfo(msft_typelib_t *typelib, const char *name)
 }
 
 static void add_structure_typeinfo(msft_typelib_t *typelib, type_t *structure);
-static void add_interface_typeinfo(msft_typelib_t *typelib, type_t *interface);
+static void add_interface_typeinfo(msft_typelib_t *typelib, type_t *interface_item);
 static void add_enum_typeinfo(msft_typelib_t *typelib, type_t *enumeration);
 static void add_union_typeinfo(msft_typelib_t *typelib, type_t *tunion);
 static void add_coclass_typeinfo(msft_typelib_t *typelib, type_t *cls);
@@ -2134,7 +2134,7 @@ static void add_dispinterface_typeinfo(msft_typelib_t *typelib, type_t *dispinte
     typelib->typelib->reg_ifaces[typelib->typelib->reg_iface_count++] = dispinterface;
 }
 
-static void add_interface_typeinfo(msft_typelib_t *typelib, type_t *interface)
+static void add_interface_typeinfo(msft_typelib_t *typelib, type_t *interface_item)
 {
     int idx = 0;
     const statement_t *stmt_func;
@@ -2145,24 +2145,24 @@ static void add_interface_typeinfo(msft_typelib_t *typelib, type_t *interface)
     type_t *inherit;
     const type_t *derived;
 
-    if (-1 < interface->typelib_idx)
+    if (-1 < interface_item->typelib_idx)
         return;
 
-    if (!interface->details.iface)
+    if (!interface_item->details.iface)
     {
-        error( "interface %s is referenced but not defined\n", interface->name );
+        error( "interface_item %s is referenced but not defined\n", interface_item->name );
         return;
     }
 
-    if (is_attr(interface->attrs, ATTR_DISPINTERFACE)) {
-        add_dispinterface_typeinfo(typelib, interface);
+    if (is_attr(interface_item->attrs, ATTR_DISPINTERFACE)) {
+        add_dispinterface_typeinfo(typelib, interface_item);
         return;
     }
 
     /* midl adds the parent interface first, unless the parent itself
        has no parent (i.e. it stops before IUnknown). */
 
-    inherit = type_iface_get_inherit(interface);
+    inherit = type_iface_get_inherit(interface_item);
 
     if(inherit) {
         ref_importinfo = find_importinfo(typelib, inherit->name);
@@ -2173,11 +2173,11 @@ static void add_interface_typeinfo(msft_typelib_t *typelib, type_t *interface)
     }
 
     /* check typelib_idx again, it could have been added while resolving the parent interface */
-    if (-1 < interface->typelib_idx)
+    if (-1 < interface_item->typelib_idx)
         return;
 
-    interface->typelib_idx = typelib->typelib_header.nrtypeinfos;
-    msft_typeinfo = create_msft_typeinfo(typelib, TKIND_INTERFACE, interface->name, interface->attrs);
+    interface_item->typelib_idx = typelib->typelib_header.nrtypeinfos;
+    msft_typeinfo = create_msft_typeinfo(typelib, TKIND_INTERFACE, interface_item->name, interface_item->attrs);
     msft_typeinfo->typeinfo->size = pointer_size;
     msft_typeinfo->typeinfo->typekind |= 0x0200;
     msft_typeinfo->typeinfo->typekind |= pointer_size << 11;
@@ -2186,8 +2186,8 @@ static void add_interface_typeinfo(msft_typelib_t *typelib, type_t *interface)
         if (derived->name && !strcmp(derived->name, "IDispatch"))
             msft_typeinfo->typeinfo->flags |= 0x1000; /* TYPEFLAG_FDISPATCHABLE */
 
-    if(type_iface_get_inherit(interface))
-        add_impl_type(msft_typeinfo, type_iface_get_inherit(interface),
+    if(type_iface_get_inherit(interface_item))
+        add_impl_type(msft_typeinfo, type_iface_get_inherit(interface_item),
                       ref_importinfo);
 
     /* count the number of inherited interfaces and non-local functions */
@@ -2201,17 +2201,17 @@ static void add_interface_typeinfo(msft_typelib_t *typelib, type_t *interface)
     msft_typeinfo->typeinfo->datatype2 = num_funcs << 16 | num_parents;
     msft_typeinfo->typeinfo->cbSizeVft = num_funcs * pointer_size;
 
-    STATEMENTS_FOR_EACH_FUNC( stmt_func, type_iface_get_stmts(interface) ) {
+    STATEMENTS_FOR_EACH_FUNC( stmt_func, type_iface_get_stmts(interface_item) ) {
         var_t *func = stmt_func->u.var;
         if(add_func_desc(msft_typeinfo, func, idx))
             idx++;
     }
 
-    if (is_attr(interface->attrs, ATTR_OLEAUTOMATION) || is_attr(interface->attrs, ATTR_DUAL))
+    if (is_attr(interface_item->attrs, ATTR_OLEAUTOMATION) || is_attr(interface_item->attrs, ATTR_DUAL))
     {
         typelib->typelib->reg_ifaces = xrealloc(typelib->typelib->reg_ifaces,
-                (typelib->typelib->reg_iface_count + 1) * sizeof(interface));
-        typelib->typelib->reg_ifaces[typelib->typelib->reg_iface_count++] = interface;
+                (typelib->typelib->reg_iface_count + 1) * sizeof(interface_item));
+        typelib->typelib->reg_ifaces[typelib->typelib->reg_iface_count++] = interface_item;
     }
 }
 

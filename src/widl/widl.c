@@ -42,8 +42,8 @@
 #include "header.h"
 
 static const char usage[] =
-"Usage: widl [options...] infile.idl\n"
-"   or: widl [options...] --dlldata-only name1 [name2...]\n"
+"Usage: wmidl [options...] infile.idl\n"
+"   or: wmidl [options...] --dlldata-only name1 [name2...]\n"
 "   --acf=file         Use ACF file\n"
 "   -app_config        Ignored, present for midl compatibility\n"
 "   -b arch            Set the target architecture\n"

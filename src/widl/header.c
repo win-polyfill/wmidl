@@ -1128,22 +1128,21 @@ static void write_method_macro(FILE *header, const type_t *iface, const type_t *
       const var_t *arg;
 
       fprintf(header, "#define %s_%s(This", name, get_name(func));
-      if (type_function_get_args(func->declspec.type))
-          LIST_FOR_EACH_ENTRY( arg, type_function_get_args(func->declspec.type), const var_t, entry )
-              fprintf(header, ",%s", arg->name);
-      fprintf(header, ") ");
-
       if (is_aggregate_return(func))
-      {
-        fprintf(header, "%s_%s_define_WIDL_C_INLINE_WRAPPERS_for_aggregate_return_support\n", name, get_name(func));
-        continue;
-      }
+        fprintf(header, ",RetVal");
 
-      fprintf(header, "(This)->lpVtbl->%s(This", get_vtbl_entry_name(iface, func));
       if (type_function_get_args(func->declspec.type))
           LIST_FOR_EACH_ENTRY( arg, type_function_get_args(func->declspec.type), const var_t, entry )
               fprintf(header, ",%s", arg->name);
-      fprintf(header, ")\n");
+      fprintf(header, ")\t\\\n");
+
+      fprintf(header, "    ( (This)->lpVtbl -> %s(This", get_vtbl_entry_name(iface, func));
+      if (is_aggregate_return(func))
+        fprintf(header, ",RetVal");
+      if (type_function_get_args(func->declspec.type))
+          LIST_FOR_EACH_ENTRY( arg, type_function_get_args(func->declspec.type), const var_t, entry )
+              fprintf(header, ",%s", arg->name);
+      fprintf(header, ") ) \n\n");
     }
   }
 }
@@ -1278,6 +1277,7 @@ static void write_cpp_method_def(FILE *header, const type_t *iface)
   }
 }
 
+#if 0
 static void write_inline_wrappers(FILE *header, const type_t *iface, const type_t *child, const char *name)
 {
   const statement_t *stmt;
@@ -1329,6 +1329,7 @@ static void write_inline_wrappers(FILE *header, const type_t *iface, const type_
     }
   }
 }
+#endif
 
 static void do_write_c_method_def(FILE *header, const type_t *iface, const char *name)
 {
@@ -1372,7 +1373,7 @@ static void do_write_c_method_def(FILE *header, const type_t *iface, const char 
         write_args(header, type_function_get_args(func->declspec.type), name, 0, TRUE, NAME_C);
       }
       fprintf(header, ");\n");
-      fprintf(header, "\n");
+      write_line(header, 0, "");
     }
   }
 }
@@ -1766,33 +1767,41 @@ static void write_com_interface_end(FILE *header, type_t *iface)
   }
   if (uuid)
       write_uuid_decl(header, iface, uuid);
-  fprintf(header, "#else\n");
+  write_line(header, 0, "#else \t/* C style interface */\n");
   /* C interface */
-  write_line(header, 1, "typedef struct %sVtbl {", iface->c_name);
-  write_line(header, 0, "BEGIN_INTERFACE\n");
+  indentation += 1;
+  write_line(header, 0, "typedef struct %sVtbl", iface->c_name);
+  write_line(header, 0, "{");
+  indentation += 1;
+  write_line(header, 0, "BEGIN_INTERFACE");
+  write_line(header, 0, "");
   if (dispinterface)
     write_c_disp_method_def(header, iface);
   else
     write_c_method_def(header, iface);
   write_line(header, 0, "END_INTERFACE");
-  write_line(header, -1, "} %sVtbl;\n", iface->c_name);
-  fprintf(header, "interface %s {\n", iface->c_name);
-  fprintf(header, "    CONST_VTBL %sVtbl* lpVtbl;\n", iface->c_name);
-  fprintf(header, "};\n\n");
-  fprintf(header, "#ifdef COBJMACROS\n");
+  indent(header, -1);
+  indent(header, -1);
+  write_line(header, 0, "} %sVtbl;", iface->c_name);
+  write_line(header, 0, "");
+  indentation += 1;
+  write_line(header, 0, "interface %s", iface->c_name);
+  write_line(header, 0, "{");
+  write_line(header, 0, "    CONST_VTBL struct %sVtbl *lpVtbl;", iface->c_name);
+  write_line(header, 0, "};\n");
+  write_line(header, 0, "\n");
+  indentation -= 1;
+
+  fprintf(header, "#ifdef COBJMACROS\n\n");
   /* dispinterfaces don't have real functions, so don't write macros for them,
    * only for the interface this interface inherits from, i.e. IDispatch */
-  fprintf(header, "#ifndef WIDL_C_INLINE_WRAPPERS\n");
   type = dispinterface ? type_iface_get_inherit(iface) : iface;
   write_method_macro(header, type, type, iface->c_name);
-  fprintf(header, "#else\n");
-  write_inline_wrappers(header, type, type, iface->c_name);
-  fprintf(header, "#endif\n");
   if (winrt_mode) write_widl_using_macros(header, iface);
-  fprintf(header, "#endif\n");
-  fprintf(header, "\n");
-  fprintf(header, "#endif\n");
-  fprintf(header, "\n");
+  fprintf(header, "#endif /* COBJMACROS */\n");
+  fprintf(header, "\n\n");
+  fprintf(header, "#endif \t/* C style interface */\n");
+  fprintf(header, "\n\n\n");
   /* dispinterfaces don't have real functions, so don't write prototypes for
    * them */
   if (!dispinterface && !winrt_mode)
@@ -1801,7 +1810,7 @@ static void write_com_interface_end(FILE *header, type_t *iface)
     write_locals(header, iface, FALSE);
     fprintf(header, "\n");
   }
-  fprintf(header, "#endif  /* __%s_%sINTERFACE_DEFINED__ */\n", iface->c_name, dispinterface ? "DISP" : "");
+  fprintf(header, "#endif \t/* __%s_%sINTERFACE_DEFINED__ */\n", iface->c_name, dispinterface ? "DISP" : "");
   if (contract) write_apicontract_guard_end(header, contract);
   fprintf(header, "\n");
 }

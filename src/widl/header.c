@@ -159,7 +159,7 @@ static void write_uuid_decl(FILE *f, type_t *type, const struct uuid *uuid)
         type->c_name, uuid->Data1, uuid->Data2, uuid->Data3, uuid->Data4[0], uuid->Data4[1],
         uuid->Data4[2], uuid->Data4[3], uuid->Data4[4], uuid->Data4[5], uuid->Data4[6],
         uuid->Data4[7]);
-  fprintf(f, "#endif\n");
+  fprintf(f, "#endif /* __CRT_UUID_DECL */\n\n");
 }
 
 static const char *uuid_string(const struct uuid *uuid)
@@ -1273,7 +1273,7 @@ static void write_cpp_method_def(FILE *header, const type_t *iface)
 
       if (is_aggregate_return(func))
         fprintf(header, "#endif\n");
-      fprintf(header, "\n");
+      write_line(header, 0, "");
     }
   }
 }
@@ -1719,32 +1719,36 @@ static void write_com_interface_end(FILE *header, type_t *iface)
       write_line(header, 0, "} /* extern \"C\" */");
       write_namespace_start(header, iface->namespace);
   }
+  indentation += 1;
+  write_line(header, 0, "");
   if (uuid) {
       if (strchr(iface->name, '<')) write_line(header, 0, "template<>");
       write_line(header, 0, "MIDL_INTERFACE(\"%s\")", uuid_string(uuid));
-      indent(header, 0);
   }else {
-      indent(header, 0);
-      if (strchr(iface->name, '<')) fprintf(header, "template<> struct ");
-      else fprintf(header, "interface ");
+      if (strchr(iface->name, '<')) write_line(header, 0, "template<> struct ");
+      else write_line(header, 0, "interface ");
   }
+  indent(header, 0);
   if (iface->impl_name)
   {
     fprintf(header, "%s : %s\n", iface->name, iface->impl_name);
-    write_line(header, 1, "{");
+    write_line(header, 0, "{");
+    write_line(header, 0, "public:");
   }
   else if (type_iface_get_inherit(iface))
   {
     fprintf(header, "%s : public %s\n", iface->name,
             type_iface_get_inherit(iface)->name);
-    write_line(header, 1, "{");
+    write_line(header, 0, "{");
+    write_line(header, 0, "public:");
   }
   else
   {
     fprintf(header, "%s\n", iface->name);
-    write_line(header, 1, "{\n");
+    write_line(header, 0, "{\n");
     write_line(header, 0, "BEGIN_INTERFACE\n");
   }
+  indentation += 1;
   /* dispinterfaces don't have real functions, so don't write C++ functions for
    * them */
   if (!dispinterface && !iface->impl_name)
@@ -1752,6 +1756,10 @@ static void write_com_interface_end(FILE *header, type_t *iface)
   if (!type_iface_get_inherit(iface) && !iface->impl_name)
     write_line(header, 0, "END_INTERFACE\n");
   write_line(header, -1, "};");
+  write_line(header, 0, "");
+  write_line(header, 0, "");
+  indentation -= 1;
+
   if (!is_global_namespace(iface->namespace)) {
       write_namespace_end(header, iface->namespace);
       write_line(header, 0, "extern \"C\" {");

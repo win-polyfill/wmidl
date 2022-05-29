@@ -277,8 +277,8 @@ static void set_everything(int x)
 void start_cplusplus_guard(FILE *fp)
 {
   fprintf(fp, "#ifdef __cplusplus\n");
-  fprintf(fp, "extern \"C\" {\n");
-  fprintf(fp, "#endif\n\n");
+  fprintf(fp, "extern \"C\"{\n");
+  fprintf(fp, "#endif \n\n");
 }
 
 void end_cplusplus_guard(FILE *fp)

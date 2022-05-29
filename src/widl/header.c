@@ -1223,7 +1223,7 @@ static void write_cpp_method_def(FILE *header, const type_t *iface)
       if (!callconv) callconv = "STDMETHODCALLTYPE";
 
       if (is_aggregate_return(func)) {
-        fprintf(header, "#ifdef WIDL_EXPLICIT_AGGREGATE_RETURNS\n");
+        fprintf(header, "#ifndef _MSC_VER\n");
 
         indent(header, 0);
         fprintf(header, "virtual ");

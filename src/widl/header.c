@@ -283,7 +283,7 @@ static void write_enums(FILE *h, var_list_t *enums, const char *enum_name)
       else
           fprintf(h, "%s_%s", enum_name, get_name(v));
       if (v->eval) {
-        fprintf(h, " = ");
+        fprintf(h, "\t= ");
         write_expr(h, v->eval, 0, 1, NULL, NULL, "");
       }
     }
@@ -347,13 +347,17 @@ void write_type_left(FILE *h, const decl_spec_t *ds, enum name_type name_type, i
         if (declonly) fprintf(h, "enum %s", decl_name ? decl_name : "");
         else if (!t->written) {
           assert(t->defined);
-          if (decl_name) fprintf(h, "enum %s {\n", decl_name);
-          else fprintf(h, "enum {\n");
+          if (decl_name) fprintf(h, "\nenum %s\n", decl_name);
+          else fprintf(h, "\nenum\n");
           t->written = TRUE;
           indentation++;
+          write_line(h, 0, "{");
+          indentation++;
           write_enums(h, type_enum_get_values(t), is_global_namespace(t->namespace) ? NULL : t->name);
-          indent(h, -1);
+          indentation--;
+          indent(h, 0);
           fprintf(h, "}");
+          indentation--;
         }
         else if (winrt_mode && name_type == NAME_DEFAULT && name) fprintf(h, "%s", name);
         else fprintf(h, "enum %s", name ? name : "");
@@ -363,15 +367,17 @@ void write_type_left(FILE *h, const decl_spec_t *ds, enum name_type name_type, i
         if (declonly) fprintf(h, "struct %s", decl_name ? decl_name : "");
         else if (!t->written) {
           assert(t->defined);
-          if (decl_name) fprintf(h, "struct %s {\n", decl_name);
-          else fprintf(h, "struct {\n");
+          if (decl_name) fprintf(h, "struct %s\n", decl_name);
+          else fprintf(h, "struct\n");
           t->written = TRUE;
           indentation++;
+          write_line(h, 0, "{");
           if (type_get_type(t) != TYPE_STRUCT)
             write_fields(h, type_encapsulated_union_get_fields(t), name_type);
           else
             write_fields(h, type_struct_get_fields(t), name_type);
-          indent(h, -1);
+          indent(h, 0);
+          indentation--;
           fprintf(h, "}");
         }
         else if (winrt_mode && name_type == NAME_DEFAULT && name) fprintf(h, "%s", name);
@@ -381,12 +387,14 @@ void write_type_left(FILE *h, const decl_spec_t *ds, enum name_type name_type, i
         if (declonly) fprintf(h, "union %s", decl_name ? decl_name : "");
         else if (!t->written) {
           assert(t->defined);
-          if (decl_name) fprintf(h, "union %s {\n", decl_name);
-          else fprintf(h, "union {\n");
+          if (decl_name) fprintf(h, "union %s\n", decl_name);
+          else fprintf(h, "union\n");
           t->written = TRUE;
           indentation++;
+          write_line(h, 0, "{");
           write_fields(h, type_union_get_cases(t), name_type);
-          indent(h, -1);
+          indent(h, 0);
+          indentation--;
           fprintf(h, "}");
         }
         else if (winrt_mode && name_type == NAME_DEFAULT && name) fprintf(h, "%s", name);
@@ -912,9 +920,9 @@ static void write_declaration(FILE *header, const var_t *v)
 {
   if (is_const_decl(v) && v->eval)
   {
-    fprintf(header, "#define %s (", v->name);
+    fprintf(header, "#define\t%s\t( ", v->name);
     write_expr(header, v->eval, 0, 1, NULL, NULL, "");
-    fprintf(header, ")\n\n");
+    fprintf(header, " )\n\n");
   }
   else
   {
@@ -2080,10 +2088,14 @@ static void write_header_stmts(FILE *header, const statement_list_t *stmts, cons
         }
         break;
       case STMT_TYPEREF:
+#if 0
         /* FIXME: shouldn't write out forward declarations for undefined
         * interfaces but a number of our IDL files depend on this */
         if (type_get_type(stmt->u.type) == TYPE_INTERFACE && !stmt->u.type->written)
           write_forward(header, stmt->u.type);
+#else
+        fprintf(header, "\n");
+#endif
         break;
       case STMT_IMPORTLIB:
       case STMT_MODULE:
